@@ -1,5 +1,6 @@
 package com.art4ul.flink.testkit
 
+import com.art4ul.flink.testkit.sink.ResultBuffer
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.configuration.{Configuration, RestOptions, TaskManagerOptions}
@@ -7,7 +8,6 @@ import org.apache.flink.runtime.jobgraph.JobGraph
 import org.apache.flink.runtime.minicluster.{MiniCluster, MiniClusterConfiguration}
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment => ScalaStreamExecutionEnvironment}
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
-
 import scala.collection.JavaConversions._
 import scala.concurrent.{ExecutionContext, Future}
 
