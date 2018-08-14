@@ -34,7 +34,6 @@ class IntegrationTest extends FlatSpec with FlinkTestBase {
       .create
 
     env.execute()
-
   }
 
 }

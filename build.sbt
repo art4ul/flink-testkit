@@ -2,9 +2,11 @@ name := "flink-testkit"
 
 organization := "com.art4ul"
 
-version := "0.1"
+version := "0.1-SNAPSHOT"
 
 scalaVersion := "2.11.12"
+
+publishTo := sonatypePublishTo.value
 
 libraryDependencies ++=Seq(
   "org.apache.flink" %% "flink-streaming-scala" % "1.6.0" ,
