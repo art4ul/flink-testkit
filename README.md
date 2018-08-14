@@ -1,7 +1,7 @@
 # Flink-testkit
 Simple framework for testing Flink streaming applications based on ScalaTest library.
 
-# Example 
+## Example 
 Create test source:
 ```scala
 class ExampleSpec extends FlatSpec with FlinkTestBase {
@@ -33,5 +33,36 @@ class ExampleSpec extends FlatSpec with FlinkTestBase {
     env.execute()
   }
 }
+```
+
+## How to use
+### SBT 
+```scala
+  resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+  
+  libraryDependencies += "com.art4ul" %% "flink-testkit" % "0.1-SNAPSHOT"
+```
+
+### Maven 
+Add maven repository :
+```xml
+<repositories>
+    <repository>
+        <id>oss-sonatype</id>
+        <name>oss-sonatype</name>
+        <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        <snapshots>
+            <enabled>true</enabled>
+        </snapshots>
+    </repository>
+</repositories>
+```
+and dependency to pom.xml:
+```xml
+<dependency>
+    <groupId>com.art4ul</groupId>
+    <artifactId>flink-testkit</artifactId>
+    <version>0.1-SNAPSHOT</version>
+</dependency>
 ```
 
