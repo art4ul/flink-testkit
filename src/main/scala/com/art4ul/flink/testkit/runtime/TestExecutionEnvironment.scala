@@ -1,4 +1,4 @@
-package com.art4ul.flink.testkit
+package com.art4ul.flink.testkit.runtime
 
 import com.art4ul.flink.testkit.sink.ResultBuffer
 import com.typesafe.scalalogging.LazyLogging
@@ -6,8 +6,9 @@ import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.configuration.{Configuration, RestOptions, TaskManagerOptions}
 import org.apache.flink.runtime.jobgraph.JobGraph
 import org.apache.flink.runtime.minicluster.{MiniCluster, MiniClusterConfiguration}
-import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment => ScalaStreamExecutionEnvironment}
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
+import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment => ScalaStreamExecutionEnvironment}
+
 import scala.collection.JavaConversions._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,8 +38,11 @@ class TestExecutionEnvironment(configuration: Configuration) extends StreamExecu
   def checkSinkCompleteness: Unit = {
     implicit val ec = ExecutionContext.global
     Future {
-      var run: Boolean = true
-      while (run) {
+      var runinig: Boolean = if (ResultBuffer.sinkStates.nonEmpty){
+        true
+      }else false
+
+      while (runinig) {
         val completeAll = ResultBuffer.sinkStates
           .values()
           .forall(f => f.isCompleted)
@@ -51,7 +55,7 @@ class TestExecutionEnvironment(configuration: Configuration) extends StreamExecu
           } else {
             resultException = failed.head.failed.get
             forceClose
-            run = false
+            runinig = false
           }
         }
         Thread.sleep(100)

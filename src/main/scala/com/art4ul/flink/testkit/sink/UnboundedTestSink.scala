@@ -2,11 +2,11 @@ package com.art4ul.flink.testkit.sink
 
 import java.util.concurrent.ConcurrentHashMap
 
-import akka.actor.{ActorSystem, Cancellable}
-import com.art4ul.flink.testkit.TestExecutionEnvironment
 import com.art4ul.flink.testkit.collectors.{AlwaysEmptyCollector, CountCollector, ResultCollector}
+import com.art4ul.flink.testkit.runtime.TestExecutionEnvironment
 import com.art4ul.flink.testkit.matchers.ResultMatcher
 import org.apache.flink.configuration.Configuration
+import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 
@@ -19,30 +19,12 @@ object ResultBuffer {
   val sinkStates = new ConcurrentHashMap[String, Future[Boolean]]
 }
 
-object UnboundedTestSink {
-
-  implicit class RichFlow[T](flow: DataStream[T]) {
-
-    def unboundedTestSink(timeout: FiniteDuration = 10.seconds): UnboundedTestSinkBuilder[T] = {
-      val env: TestExecutionEnvironment = flow.executionEnvironment match {
-        case testEnv: TestExecutionEnvironment => testEnv
-        case scalaWrapper: StreamExecutionEnvironment =>
-          require(scalaWrapper.getJavaEnv.isInstanceOf[TestExecutionEnvironment], "Incorrect execution environment")
-          scalaWrapper.getJavaEnv.asInstanceOf[TestExecutionEnvironment]
-        case _ => throw new IllegalArgumentException("Incorrect execution environment")
-      }
-      UnboundedTestSinkBuilder(env, flow, timeout)
-    }
-  }
-
-}
-
 import java.util.UUID.randomUUID
 
-case class UnboundedTestSinkBuilder[T](env: TestExecutionEnvironment,
-                                       flow: DataStream[T],
-                                       timeout: FiniteDuration,
-                                       private val collectors: Seq[ResultCollector[T]] = Seq()) {
+protected[sink] case class UnboundedTestSinkBuilder[T](private val env: TestExecutionEnvironment,
+                                                       private val flow: DataStream[T],
+                                                       private val timeout: FiniteDuration,
+                                                       private val collectors: Seq[ResultCollector[T]] = Seq()) {
 
   def withCollector(collector: ResultCollector[T]): UnboundedTestSinkBuilder[T] = {
     this.copy(collectors = collectors :+ collector)
@@ -52,41 +34,16 @@ case class UnboundedTestSinkBuilder[T](env: TestExecutionEnvironment,
     this.copy(collectors = collectors :+ new AlwaysEmptyCollector[T])
   }
 
-  def collect(count: Int, matcher: ResultMatcher[T]): UnboundedTestSinkBuilder[T] = {
-    this.copy(collectors = collectors :+ new CountCollector(count, matcher))
+  def collect(expectCount: Int, matcher: ResultMatcher[T]): UnboundedTestSinkBuilder[T] = {
+    this.copy(collectors = collectors :+ new CountCollector(expectCount, matcher))
   }
 
-  def create: Unit = {
+  def create(): DataStreamSink[T] = {
     val uuid = randomUUID.toString
     ResultBuffer.sinkStates.put(uuid, Promise.apply[Boolean]().future)
-    flow.addSink(new UnboundedTestSink[T](uuid, collectors, timeout)).setParallelism(1)
-  }
-
-}
-
-trait TimerSupport {
-
-  @transient private lazy val actorSystem = ActorSystem()
-
-  @transient private var timer: Cancellable = _
-
-  def onTimer(): Unit
-
-  protected def setTimer(timeout: FiniteDuration): Unit = {
-    implicit val dispatcher = actorSystem.dispatcher
-    this.synchronized {
-      timer = actorSystem.scheduler.scheduleOnce(timeout) {
-        onTimer()
-      }
-    }
-  }
-
-  protected def cancelTimer(): Unit = {
-    this.synchronized {
-      if (timer != null) {
-        timer.cancel()
-      }
-    }
+    flow.addSink(new UnboundedTestSink[T](uuid, collectors, timeout))
+      .setParallelism(1)
+      .name("Unbounded Test Sink")
   }
 
 }
